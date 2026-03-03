@@ -324,7 +324,10 @@ class KMLRenamerApp(QWidget):
             if len(example_data.get(field, "")) > 50:
                 example_value += "..."
 
-            checkbox_text = f"{field} (ex: {example_value})"
+            # Traduz para o usuário na interface
+            display_field = "Descrição" if field == "description" else field
+            
+            checkbox_text = f"{display_field} (ex: {example_value})"
             checkbox = QCheckBox(checkbox_text)
             checkbox.setProperty("fieldName", field)
             checkbox.stateChanged.connect(self.on_checkbox_changed)

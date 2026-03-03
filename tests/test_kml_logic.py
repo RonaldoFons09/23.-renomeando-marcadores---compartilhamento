@@ -45,6 +45,18 @@ def test_extract_placemark_data_formato_schemadata():
     dados = extract_placemark_data(pm)
     assert dados == {"ID": "456", "Estado": "Ativo"}
 
+def test_extract_placemark_data_formato_description():
+    kml = f"""
+    <Placemark xmlns="{KML_NAMESPACE}">
+        <name>Teste</name>
+        <description><![CDATA[P-300/12<br>Outro dado]]></description>
+    </Placemark>
+    """
+    pm = ET.fromstring(kml)
+    dados = extract_placemark_data(pm)
+    assert "description" in dados
+    assert "P-300/12" in dados["description"]
+
 def test_extract_placemark_sem_dados():
     kml = f'<Placemark xmlns="{KML_NAMESPACE}"><name>Lixo</name></Placemark>'
     pm = ET.fromstring(kml)

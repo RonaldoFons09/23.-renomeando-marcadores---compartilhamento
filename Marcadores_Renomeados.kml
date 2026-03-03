@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='utf-8'?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:ns1="http://www.w3.org/2005/Atom">
+<Document>
+	<name>parte 3.kml</name>
+	<StyleMap id="default00">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#default10</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#hl0</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="default10">
+		<IconStyle>
+			<scale>1.2</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+	</Style>
+	<Style id="hl0">
+		<IconStyle>
+			<scale>1.4</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+	</Style>
+	<StyleMap id="msn_flag">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_flag</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_flag</styleUrl>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="msn_flag5">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_flag03</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_flag30</styleUrl>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="msn_flag6">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_flag3</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_flag4</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_flag">
+		<IconStyle>
+			<scale>1.4</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+		<BalloonStyle>
+		</BalloonStyle>
+	</Style>
+	<Style id="sh_flag30">
+		<IconStyle>
+			<scale>1.4</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+	</Style>
+	<Style id="sh_flag4">
+		<IconStyle>
+			<scale>1.4</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+	</Style>
+	<Style id="sn_flag">
+		<IconStyle>
+			<scale>1.2</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+		<BalloonStyle>
+		</BalloonStyle>
+	</Style>
+	<Style id="sn_flag03">
+		<IconStyle>
+			<scale>1.2</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+	</Style>
+	<Style id="sn_flag3">
+		<IconStyle>
+			<scale>1.2</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/shapes/flag.png</href>
+			</Icon>
+			<hotSpot x="0.5" y="0" xunits="fraction" yunits="fraction" />
+		</IconStyle>
+	</Style>
+	<Folder>
+		<name>parte 3</name>
+		<open>1</open>
+		<ns1:link rel="app" href="https://www.google.com/earth/about/versions/#earth-pro" title="Google Earth Pro 7.3.6.10441" />
+	</Folder>
+<Folder><name>Aprovados</name><Placemark>
+			<name>SEM IDENTIFICACAO 300/10 - OC03</name>
+			<description>300/10</description>
+			<TimeStamp><when>2020-01-20T14:17:00Z</when>
+</TimeStamp>
+			<styleUrl>#msn_flag</styleUrl>
+			<ExtendedData>
+				<Data name="name">
+					<value>P76</value>
+				</Data>
+				<Data name="styleUrl">
+					<value>#icon-camera.png-BCA9202153</value>
+				</Data>
+				<Data name="styleHash">
+					<value>-7c49b044</value>
+				</Data>
+				<Data name="styleMapHash">
+					<value>[object Object]</value>
+				</Data>
+				<Data name="icon">
+					<value>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</value>
+				</Data>
+				<Data name="timestamp">
+					<value>2020-01-20T14:17:00Z</value>
+				</Data>
+				<Data name="rating">
+					<value>0</value>
+				</Data>
+				<Data name="pictures">
+					<value>&lt;br/&gt;&lt;img src="C:/Users/Pessoal/Downloads/Telegram Desktop/files/image_23_73.jpg"/&gt;</value>
+				</Data>
+				<Data name="notes">
+					<value>P300-11
+C-02</value>
+				</Data>
+				<Data name="visibility">
+					<value>0</value>
+				</Data>
+			</ExtendedData>
+			<Point>
+				<coordinates>-48.33083969988622,-1.36412565754106,0</coordinates>
+			</Point>
+		</Placemark>
+		</Folder><Folder><name>Reprovados</name></Folder></Document>
+</kml>

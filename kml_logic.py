@@ -45,6 +45,15 @@ def extract_placemark_data(placemark: ET.Element) -> Dict[str, str]:
         if name and simple_data.text:
             data_values[name] = simple_data.text.strip()
 
+    # Formato <description>...</description>
+    description_element = placemark.find("kml:description", NS_MAP)
+    if description_element is not None and description_element.text:
+        # Extrai e limpa tags HTML inseridas via CDATA ou texto raw
+        clean_desc = re.sub(r'<[^>]+>', ' ', description_element.text)
+        # Substitui mltiplos espaos por um s 
+        clean_desc = re.sub(r'\s+', ' ', clean_desc).strip()
+        data_values["description"] = clean_desc
+
     return data_values
 
 
