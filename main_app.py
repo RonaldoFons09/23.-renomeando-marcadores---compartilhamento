@@ -7,9 +7,9 @@ try:
     from PyQt6.QtWidgets import (
         QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog,
         QLabel, QListWidget, QListWidgetItem, QLineEdit, QGroupBox, QFormLayout,
-        QCheckBox, QMessageBox, QDialog, QDialogButtonBox
+        QCheckBox, QMessageBox, QProgressDialog
     )
-    from PyQt6.QtCore import Qt
+    from PyQt6.QtCore import Qt, QThread, pyqtSignal
     from PyQt6.QtGui import QFont
 except ImportError:  # pragma: no cover
     print("Erro: A biblioteca PyQt6 não está instalada.")
@@ -21,6 +21,98 @@ from kml_logic import (
     discover_and_group_models,
     extract_placemark_data
 )
+
+# =============================================================================
+# CLASSES WORKER PARA QTHREAD (ASSÍNCRONO)
+# =============================================================================
+
+class KMLProcessorWorker(QThread):
+    """
+    Worker que processa o arquivo KML em background.
+    Emite sinais para desenhar barra de progresso e repassar erros ou sucesso para a Thread principal.
+    """
+    progress = pyqtSignal(int)
+    finished = pyqtSignal(int, int)  # total_validos, total_reprovados
+    error = pyqtSignal(str)
+
+    def __init__(self, kml_tree, renaming_rules, models, output_path):
+        super().__init__()
+        self.kml_tree = kml_tree
+        self.renaming_rules = renaming_rules
+        self.models = models
+        self.output_path = output_path
+        self._is_running = True
+
+    def run(self):
+        try:
+            total_validos = 0
+            total_reprovados = 0
+            
+            # Limpa os Placemarks da raiz original localizando o <Folder> original
+            parent_map = {c: p for p in self.kml_tree.getroot().iter() for c in p}
+            placemarks = self.kml_tree.getroot().findall(f".//{{{kml_logic.KML_NAMESPACE}}}Placemark")
+            for pm in placemarks:
+                if not self._is_running: return
+                if pm in parent_map:
+                    parent_map[pm].remove(pm)
+
+            # Encontra o <Document> principal
+            document_element = self.kml_tree.getroot().find(f".//{{{kml_logic.KML_NAMESPACE}}}Document")
+            if document_element is None:
+                document_element = self.kml_tree.getroot()
+
+            folder_validos = ET.SubElement(document_element, f"{{{kml_logic.KML_NAMESPACE}}}Folder")
+            name_v = ET.SubElement(folder_validos, f"{{{kml_logic.KML_NAMESPACE}}}name")
+            name_v.text = "Aprovados"
+
+            folder_reprovados = ET.SubElement(document_element, f"{{{kml_logic.KML_NAMESPACE}}}Folder")
+            name_r = ET.SubElement(folder_reprovados, f"{{{kml_logic.KML_NAMESPACE}}}name")
+            name_r.text = "Reprovados"
+
+            # Quantos grupos de modelos serão iterados pra o progresso?
+            total_rules = sum(1 for rule in self.renaming_rules.values() if rule.get("fields") or rule.get("prefix") or rule.get("suffix"))
+            current_rule_idx = 0
+
+            for model_signature, rule in self.renaming_rules.items():
+                if not self._is_running: return
+
+                prefix = rule.get("prefix", "")
+                suffix = rule.get("suffix", "")
+                fields = rule.get("fields", [])
+
+                if not fields and not prefix and not suffix:
+                    continue
+
+                placemarks_to_process = self.models[model_signature]
+
+                # Renomeia (a lógica central pesada)
+                validos, reprovados = kml_logic.rename_placemarks(
+                    placemarks_to_process, fields, rule["separator"], prefix, suffix
+                )
+                
+                for pm in validos: 
+                    folder_validos.append(pm)
+                for pm in reprovados: 
+                    folder_reprovados.append(pm)
+                    
+                total_validos += len(validos)
+                total_reprovados += len(reprovados)
+
+                current_rule_idx += 1
+                prog_pct = int((current_rule_idx / total_rules) * 90)  # 90% é processar os nos
+                self.progress.emit(prog_pct)
+
+            # Restantes 10% é do XML parser realizando I/O de disco
+            if self._is_running:
+                self.kml_tree.write(self.output_path, encoding="utf-8", xml_declaration=True)
+                self.progress.emit(100)
+                self.finished.emit(total_validos, total_reprovados)
+
+        except Exception as e:
+            self.error.emit(str(e))
+            
+    def stop(self):
+        self._is_running = False
 
 # =============================================================================
 # INTERFACE GRÁFICA (PRINCIPAL)
@@ -355,67 +447,40 @@ class KMLRenamerApp(QWidget):
             QMessageBox.warning(self, "Aviso", "Nenhuma regra de renomeação foi configurada.")
             return
 
-        total_validos = 0
-        total_reprovados = 0
+        self.process_btn.setEnabled(False)
         
-        # Limpa os Placemarks da raiz original, pois vamos realocá-los nas duas novas pastas internas
-        # Como os Placemarks podem estar dentro de outras pastas originais (<Folder>), usamos parent_map
-        parent_map = {c: p for p in self.kml_tree.getroot().iter() for c in p}
-        for pm in self.kml_tree.getroot().findall(f".//{{{kml_logic.KML_NAMESPACE}}}Placemark"):
-            if pm in parent_map:
-                parent_map[pm].remove(pm)
+        # Cria e configura a barra de progresso (Diálogo)
+        self.progress_dialog = QProgressDialog("Processando arquivos KML...", "Cancelar", 0, 100, self)
+        self.progress_dialog.setWindowTitle("Aguarde")
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setAutoClose(True)
+        self.progress_dialog.setAutoReset(True)
+        
+        # Prepara a Thread Dinâmica
+        self.worker = KMLProcessorWorker(self.kml_tree, self.renaming_rules, self.models, self.output_path)
+        self.worker.progress.connect(self.progress_dialog.setValue)
+        self.worker.finished.connect(self._on_processing_finished)
+        self.worker.error.connect(self._on_processing_error)
+        
+        self.progress_dialog.canceled.connect(self.worker.stop)
+        
+        # Dá inicio
+        self.progress_dialog.show()
+        self.worker.start()
 
-        # Encontra o <Document> principal para pendurar nossas duas novas pastas
-        document_element = self.kml_tree.getroot().find(f".//{{{kml_logic.KML_NAMESPACE}}}Document")
-        if document_element is None:
-            document_element = self.kml_tree.getroot()
+    def _on_processing_finished(self, total_validos, total_reprovados):
+        """Callback acionado na Thread UI quando a QThread de processamento emitir sucesso."""
+        self.process_btn.setEnabled(True)
+        QMessageBox.information(self, "Sucesso",
+                                f"Processamento concluído e salvo em {self.output_path}!\n\n"
+                                f"• {total_validos} marcadores (Pasta: Aprovados)\n"
+                                f"• {total_reprovados} marcadores (Pasta: Reprovados)")
 
-        # Cria a tag <Folder> para os Válidos
-        folder_validos = ET.SubElement(document_element, f"{{{kml_logic.KML_NAMESPACE}}}Folder")
-        name_v = ET.SubElement(folder_validos, f"{{{kml_logic.KML_NAMESPACE}}}name")
-        name_v.text = "Aprovados"
-
-        # Cria a tag <Folder> para os Reprovados
-        folder_reprovados = ET.SubElement(document_element, f"{{{kml_logic.KML_NAMESPACE}}}Folder")
-        name_r = ET.SubElement(folder_reprovados, f"{{{kml_logic.KML_NAMESPACE}}}name")
-        name_r.text = "Reprovados"
-
-        for model_signature, rule in self.renaming_rules.items():
-            prefix = rule.get("prefix", "")
-            suffix = rule.get("suffix", "")
-            fields = rule.get("fields", [])
-
-            if not fields and not prefix and not suffix:
-                continue
-
-            placemarks_to_process = self.models[model_signature]
-
-            # Recebe a tupla com (marcadores validos, reprovados)
-            validos, reprovados = kml_logic.rename_placemarks(
-                placemarks_to_process, fields, rule["separator"], prefix, suffix
-            )
-            
-            # Adiciona os validos apenas na Tag <Folder> dos Aprovados
-            for pm in validos: 
-                folder_validos.append(pm)
-            
-            # Adiciona os reprovados apenas na Tag <Folder> dos Reprovados
-            for pm in reprovados: 
-                folder_reprovados.append(pm)
-                
-            total_validos += len(validos)
-            total_reprovados += len(reprovados)
-
-        try:
-            # Salva o arquivo único original com as pastas modificadas
-            self.kml_tree.write(self.output_path, encoding="utf-8", xml_declaration=True)
-            
-            QMessageBox.information(self, "Sucesso",
-                                    f"Processamento concluído e salvo em {self.output_path}!\n\n"
-                                    f"• {total_validos} marcadores (Pasta: Aprovados)\n"
-                                    f"• {total_reprovados} marcadores (Pasta: Reprovados)")
-        except Exception as e:
-            QMessageBox.critical(self, "Erro ao Salvar", f"Ocorreu um erro ao salvar o arquivo:\n{e}")
+    def _on_processing_error(self, err_msg):
+        """Callback acionado pela QThread se houver quebra (como disco cheio)."""
+        self.process_btn.setEnabled(True)
+        self.progress_dialog.close()
+        QMessageBox.critical(self, "Erro ao Salvar", f"Ocorreu um erro estrutural durante o salvamento:\n{err_msg}")
 
 
 # =============================================================================

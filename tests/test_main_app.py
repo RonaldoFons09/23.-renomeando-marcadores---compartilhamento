@@ -222,7 +222,7 @@ def test_process_files_erros(kml_app, mocker):
     kml_app.process_files()
     mock_warn.assert_called_with(kml_app, "Aviso", "Nenhuma regra de renomeação foi configurada.")
 
-def test_process_files_sucesso(kml_app, mocker, tmp_path):
+def test_process_files_sucesso(kml_app, qtbot, mocker, tmp_path):
     mock_info = mocker.patch.object(QMessageBox, 'information')
     out_file = tmp_path / "out.kml"
     kml_app.input_path = "in.kml"
@@ -248,13 +248,14 @@ def test_process_files_sucesso(kml_app, mocker, tmp_path):
     fake_pm_r = ET.Element("PlacemarkFakeR1")
     mock_rename = mocker.patch('kml_logic.rename_placemarks', return_value=([fake_pm_v], [fake_pm_r]))
     
+    mocker.patch('main_app.KMLProcessorWorker.start', lambda self: self.run())
     kml_app.process_files()
     
     mock_rename.assert_called_once()
     assert "Processamento conclu" in mock_info.call_args[0][2]
     assert "Aprovados" in mock_info.call_args[0][2]
 
-def test_process_files_exception_write(kml_app, mocker, tmp_path):
+def test_process_files_exception_write(kml_app, qtbot, mocker, tmp_path):
     mock_crit = mocker.patch.object(QMessageBox, 'critical')
     out_file = tmp_path / "out.kml"
     kml_app.input_path = "in.kml"
@@ -274,7 +275,41 @@ def test_process_files_exception_write(kml_app, mocker, tmp_path):
     fake_pm = ET.Element("valid")
     mocker.patch('kml_logic.rename_placemarks', return_value=([fake_pm], []))
     
+    mocker.patch('main_app.KMLProcessorWorker.start', lambda self: self.run())
     kml_app.process_files()
     
     mock_crit.assert_called_once()
     assert "Disco cheio" in mock_crit.call_args[0][2]
+
+def test_process_files_cancelled_mid_execution(kml_app, qtbot, mocker):
+    """Testa cancelamento do usuário no meio da thread do placemark."""
+    # Prepara mock de arvore
+    fake_root = mocker.Mock()
+    kml_tree_mock = mocker.Mock()
+    kml_tree_mock.getroot.return_value = fake_root
+    kml_app.kml_tree = kml_tree_mock
+    
+    kml_app.input_path = "in.kml"
+    kml_app.output_label.setText("test.kml")
+    
+    sig = ("A",)
+    kml_app.models = {sig: ["PlacemarkFake1"]}
+    kml_app.renaming_rules = {sig: {"fields": ["A"], "prefix": "", "suffix": "", "separator": "-"}}
+    
+    # Configuramos o mock para retornar um array e forçarmos loop
+    fake_pm = mocker.Mock()
+    fake_root.findall.return_value = [fake_pm]
+    fake_root.iter.return_value = []  # parent_map vazio
+    
+    
+    # Substituímos o worker start pra invocar o Run modificado
+    def fake_start(self):
+        # Imediatamente após iniciar, fingimos que o usuário clicou no X ou Cancel do ProgressDialog
+        self.stop()
+        self.run()
+
+    mocker.patch('main_app.KMLProcessorWorker.start', fake_start)
+    kml_app.process_files()
+    
+    # Certificamos de que o write nunca foi acionado pois a thread abortou
+    kml_tree_mock.write.assert_not_called()
