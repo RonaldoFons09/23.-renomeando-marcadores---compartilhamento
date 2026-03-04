@@ -48,13 +48,26 @@ class KMLProcessorWorker(QThread):
             total_validos = 0
             total_reprovados = 0
             
-            # Limpa os Placemarks da raiz original localizando o <Folder> original
+            # Limpa os Placemarks da raiz original localizando o <Folder> ou <Document> original
             parent_map = {c: p for p in self.kml_tree.getroot().iter() for c in p}
             placemarks = self.kml_tree.getroot().findall(f".//{{{kml_logic.KML_NAMESPACE}}}Placemark")
             for pm in placemarks:
                 if not self._is_running: return
                 if pm in parent_map:
-                    parent_map[pm].remove(pm)
+                    try:
+                        parent_map[pm].remove(pm)
+                    except ValueError:
+                        pass
+
+            # Limpa também todas as Pastas (Folder) antigas para preservar apenas Aprovados/Reprovados     
+            folders = self.kml_tree.getroot().findall(f".//{{{kml_logic.KML_NAMESPACE}}}Folder")
+            for folder in folders:
+                if not self._is_running: return
+                if folder in parent_map:
+                    try:
+                        parent_map[folder].remove(folder)
+                    except ValueError:
+                        pass
 
             # Encontra o <Document> principal
             document_element = self.kml_tree.getroot().find(f".//{{{kml_logic.KML_NAMESPACE}}}Document")
