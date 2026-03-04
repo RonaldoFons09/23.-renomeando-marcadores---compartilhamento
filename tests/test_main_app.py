@@ -6,57 +6,12 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 
 import kml_logic
-from main_app import LoginDialog, KMLRenamerApp
+from main_app import KMLRenamerApp
 
 @pytest.fixture
 def run_app(qapp):
     """Fixture básica pytest-qt"""
     pass
-
-# ---- TESTES DO LOGINDIALOG ----
-def test_login_dialog_campos_vazios(qtbot, mocker):
-    mock_warning = mocker.patch.object(QMessageBox, 'warning')
-    dialog = LoginDialog()
-    qtbot.addWidget(dialog)
-
-    # Simula clique no botão "OK" (Entrar)
-    dialog.button_box.button(dialog.button_box.StandardButton.Ok).click()
-    
-    # Valida erro de campos vazios
-    mock_warning.assert_called_once()
-    assert mock_warning.call_args[0][2] == "Por favor, preencha usuário e senha."
-
-def test_login_dialog_dados_Invalidos(qtbot, mocker):
-    mocker.patch('main_app.validar_credenciais', return_value=(False, "Senha incorreta."))
-    mock_critical = mocker.patch.object(QMessageBox, 'critical')
-
-    dialog = LoginDialog()
-    qtbot.addWidget(dialog)
-
-    qtbot.keyClicks(dialog.user_input, "user")
-    qtbot.keyClicks(dialog.pass_input, "wrong_pass")
-    
-    dialog.button_box.button(dialog.button_box.StandardButton.Ok).click()
-
-    mock_critical.assert_called_once()
-    assert mock_critical.call_args[0][2] == "Senha incorreta."
-    assert dialog.pass_input.text() == "" # limpa senha
-    # A janela não deve ser aceita
-    assert not dialog.result()
-
-def test_login_dialog_valid_login(qtbot, mocker):
-    mocker.patch('main_app.validar_credenciais', return_value=(True, "OK!"))
-    dialog = LoginDialog()
-    qtbot.addWidget(dialog)
-
-    qtbot.keyClicks(dialog.user_input, "correct_user")
-    qtbot.keyClicks(dialog.pass_input, "correct_pass")
-    
-    # Clica no OK
-    qtbot.mouseClick(dialog.button_box.button(dialog.button_box.StandardButton.Ok), Qt.MouseButton.LeftButton)
-    
-    # Dialogo aceito (fechado com sucesso)
-    assert dialog.result() == 1  # 1 é Accepted
 
 
 # ---- TESTES DO KMLRenamerApp ----

@@ -22,87 +22,6 @@ from kml_logic import (
     extract_placemark_data
 )
 
-# Importa a função de validação do novo módulo de lógica de autenticação
-try:
-    from auth_logic import validar_credenciais
-except ImportError:  # pragma: no cover
-    print("Erro: O arquivo 'auth_logic.py' não foi encontrado.")
-    print("Por favor, certifique-se de que 'auth_logic.py' está no mesmo diretório.")
-    sys.exit(1)
-
-
-# =============================================================================
-# JANELA DE LOGIN (NOVA)
-# =============================================================================
-class LoginDialog(QDialog):
-    """
-    Janela de diálogo modal para autenticação do usuário.
-    Usa PyQt6 para ser compatível com a aplicação principal.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Login de Acesso")
-        self.setModal(True)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
-        self.setFixedSize(300, 150)
-
-        layout = QVBoxLayout(self)
-        form_layout = QFormLayout()
-
-        self.user_input = QLineEdit(self)
-        self.pass_input = QLineEdit(self)
-        self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
-
-        form_layout.addRow(QLabel("Usuário:"), self.user_input)
-        form_layout.addRow(QLabel("Senha:"), self.pass_input)
-
-        layout.addLayout(form_layout)
-
-        # Botões padrão (OK, Cancelar)
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.button(QDialogButtonBox.StandardButton.Ok).setText("Entrar")
-        self.button_box.accepted.connect(self.handle_login)
-        self.button_box.rejected.connect(self.reject)
-
-        layout.addWidget(self.button_box)
-
-        self.user_input.setFocus()
-
-    def handle_login(self):
-        """
-        Pega os dados dos campos, chama a validação e decide se fecha
-        o diálogo (com sucesso) ou exibe um erro.
-        """
-        usuario = self.user_input.text()
-        senha = self.pass_input.text()
-
-        if not usuario or not senha:
-            QMessageBox.warning(self, "Atenção", "Por favor, preencha usuário e senha.")
-            return
-
-        # Desabilita botões durante a verificação
-        self.button_box.setEnabled(False)
-        self.button_box.button(QDialogButtonBox.StandardButton.Ok).setText("Verificando...")
-        self.button_box.repaint()  # Força a atualização da UI
-
-        # Chama a lógica de validação
-        sucesso, mensagem = validar_credenciais(usuario, senha)
-
-        # Reabilita botões
-        self.button_box.setEnabled(True)
-        self.button_box.button(QDialogButtonBox.StandardButton.Ok).setText("Entrar")
-
-        if sucesso:
-            # A linha "QMessageBox.information" foi removida daqui
-            self.accept()  # Fecha o diálogo retornando "Accepted"
-        else:
-            QMessageBox.critical(self, "Erro de Login", mensagem)
-            self.pass_input.clear()
-            self.pass_input.setFocus()
-            # Não fecha o diálogo
-
-
 # =============================================================================
 # INTERFACE GRÁFICA (PRINCIPAL)
 # =============================================================================
@@ -500,25 +419,11 @@ class KMLRenamerApp(QWidget):
 
 
 # =============================================================================
-# PONTO DE ENTRADA DA APLICAÇÃO (MODIFICADO)
+# PONTO DE ENTRADA DA APLICAÇÃO
 # =============================================================================
 
 if __name__ == "__main__":  # pragma: no cover
     app = QApplication(sys.argv)
-
-    # 1. Cria e executa o diálogo de login
-    login_dialog = LoginDialog()
-
-    # .exec() torna o diálogo modal (bloqueia) até que seja fechado
-    # Ele retorna QDialog.DialogCode.Accepted se self.accept() for chamado
-    # ou QDialog.DialogCode.Rejected se self.reject() for chamado
-
-    if login_dialog.exec() == QDialog.DialogCode.Accepted:
-        # 2. Se o login foi aceito, mostra a aplicação principal
-        main_window = KMLRenamerApp()
-        main_window.show()
-        sys.exit(app.exec())
-    else:
-        # 3. Se o login foi cancelado ou falhou (usuário fechou), encerra
-        print("Login cancelado. Encerrando aplicação.")
-        sys.exit(0)
+    main_window = KMLRenamerApp()
+    main_window.show()
+    sys.exit(app.exec())
